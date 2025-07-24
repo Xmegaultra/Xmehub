@@ -55,6 +55,34 @@ end
 local autoDungeonAtivo = false
 local dungeonLoop
 
+-- Nome da part da roda da dungeon (troque se for diferente)
+local nomeRodaDungeon = "DungeonWheel"
+
+local function ativarHaki()
+    if game.ReplicatedStorage:FindFirstChild("HakiEvent") then
+        game.ReplicatedStorage.HakiEvent:FireServer("armamento")
+        game.ReplicatedStorage.HakiEvent:FireServer("observação")
+    end
+end
+
+local function aproximarNpc(char, npc)
+    local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+    if humanoidRootPart and npc:FindFirstChild("HumanoidRootPart") then
+        local npcPos = npc.HumanoidRootPart.Position
+        local dir = (humanoidRootPart.Position - npcPos).Unit
+        local targetPos = npcPos + dir * 8
+        humanoidRootPart.CFrame = CFrame.new(targetPos.X, npcPos.Y, targetPos.Z)
+    end
+end
+
+local function teleportarNaRoda(char)
+    local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
+    local roda = workspace:FindFirstChild(nomeRodaDungeon)
+    if humanoidRootPart and roda then
+        humanoidRootPart.CFrame = roda.CFrame + Vector3.new(0, 3, 0)
+    end
+end
+
 CreateBtn("Auto Dungeon", 0, function(btn)
 	btn.Text = "Auto Dungeon: OFF"
 	btn.MouseButton1Click:Connect(function()
@@ -67,15 +95,22 @@ CreateBtn("Auto Dungeon", 0, function(btn)
 					local char = player.Character or player.CharacterAdded:Wait()
 					local humanoid = char:FindFirstChild("Humanoid")
 
+					-- Teleporta para a roda da dungeon
+					teleportarNaRoda(char)
+					wait(0.5)
+
+					-- Ativa o haki
+					ativarHaki()
+
 					for _, mob in pairs(workspace:GetDescendants()) do
 						if not autoDungeonAtivo then break end
 						if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 and mob.Name ~= player.Name then
 							
-							-- Aproxima do inimigo
-							humanoid:MoveTo(mob.HumanoidRootPart.Position + Vector3.new(0,2,0))
+							-- Aproxima o player do inimigo a 8 studs
+							aproximarNpc(char, mob)
 							wait(0.5)
 
-							-- Troca pra espada
+							-- Troca para a espada
 							local sword = player.Backpack:FindFirstChild("Combat") or player.Backpack:FindFirstChildWhichIsA("Tool")
 							if sword then
 								sword.Parent = player.Character
@@ -88,7 +123,7 @@ CreateBtn("Auto Dungeon", 0, function(btn)
 
 							wait(0.4)
 
-							-- Troca pra fruta
+							-- Troca para a fruta
 							local fruit = player.Backpack:FindFirstChildWhichIsA("Tool")
 							if fruit and fruit.Name ~= (sword and sword.Name or "") then
 								fruit.Parent = player.Character
