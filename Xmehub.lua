@@ -1,159 +1,41 @@
--- Xmehub - Criado por Lucas
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local vim = game:GetService("VirtualInputManager")
-local rs = game:GetService("RunService")
-local gui = Instance.new("ScreenGui", game.CoreGui)
-gui.Name = "Xmehub"
+-- Xmehub - Auto Dungeon King Legacy (estilo OMG Hub) -- Criado por Lucas
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 230, 0, 300)
-frame.Position = UDim2.new(0, 20, 0.5, -150)
-frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-frame.BorderSizePixel = 0
+local Players = game:GetService("Players") local RunService = game:GetService("RunService") local VirtualInputManager = game:GetService("VirtualInputManager") local TweenService = game:GetService("TweenService") local UserInputService = game:GetService("UserInputService") local player = Players.LocalPlayer local char = player.Character or player.CharacterAdded:Wait() local humanoidRootPart = char:WaitForChild("HumanoidRootPart")
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+local enabled = false local guiVisible = true local distanceAbove = 8 local tweenSpeed = 100
 
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, -35, 0, 35)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Xmehub"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextXAlignment = Enum.TextXAlignment.Left
+-- Interface do Hub local gui = Instance.new("ScreenGui", game.CoreGui) gui.Name = "Xmehub"
 
-local close = Instance.new("TextButton", frame)
-close.Size = UDim2.new(0, 25, 0, 25)
-close.Position = UDim2.new(1, -30, 0, 5)
-close.Text = "X"
-close.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-close.TextColor3 = Color3.fromRGB(255, 255, 255)
-close.Font = Enum.Font.GothamBold
-close.TextSize = 14
-close.MouseButton1Click:Connect(function()
-	frame.Visible = false
-end)
+-- Janela principal local frame = Instance.new("Frame", gui) frame.Size = UDim2.new(0, 200, 0, 100) frame.Position = UDim2.new(0, 10, 0, 10) frame.BackgroundColor3 = Color3.new(0, 0, 0) frame.BorderSizePixel = 0 dragging = false
 
-local function CreateBtn(text, order, func)
-	local btn = Instance.new("TextButton", frame)
-	btn.Size = UDim2.new(0.9, 0, 0, 32)
-	btn.Position = UDim2.new(0.05, 0, 0, 45 + order * 37)
-	btn.Text = text
-	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
-	btn.AutoButtonColor = true
-	btn.Name = text
-	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-	func(btn)
-end
+-- Título local title = Instance.new("TextLabel", frame) title.Size = UDim2.new(1, 0, 0, 30) title.Text = "Xmehub - Auto Dungeon" title.TextColor3 = Color3.new(1, 1, 1) title.BackgroundTransparency = 1
 
--- Variável para controle
-local autoDungeonAtivo = false
-local dungeonLoop
+-- Botão Toggle ON/OFF local toggle = Instance.new("TextButton", frame) toggle.Size = UDim2.new(1, -20, 0, 40) toggle.Position = UDim2.new(0, 10, 0, 40) toggle.Text = "[ OFF ]" toggle.TextColor3 = Color3.new(1, 1, 1) toggle.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2) toggle.BorderSizePixel = 0
 
--- Nome da part da roda da dungeon (troque se for diferente)
-local nomeRodaDungeon = "DungeonWheel"
+-- Botão abrir interface local openButton = Instance.new("TextButton", gui) openButton.Size = UDim2.new(0, 80, 0, 30) openButton.Position = UDim2.new(0, 10, 0, 120) openButton.Text = "Abrir Hub" openButton.TextColor3 = Color3.new(1, 1, 1) openButton.BackgroundColor3 = Color3.new(0, 0, 0) openButton.BorderSizePixel = 0 openButton.Visible = false
 
-local function ativarHaki()
-    if game.ReplicatedStorage:FindFirstChild("HakiEvent") then
-        game.ReplicatedStorage.HakiEvent:FireServer("armamento")
-        game.ReplicatedStorage.HakiEvent:FireServer("observação")
-    end
-end
+openButton.MouseButton1Click:Connect(function() frame.Visible = true guiVisible = true openButton.Visible = false end)
 
-local function aproximarNpc(char, npc)
-    local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
-    if humanoidRootPart and npc:FindFirstChild("HumanoidRootPart") then
-        local npcPos = npc.HumanoidRootPart.Position
-        local dir = (humanoidRootPart.Position - npcPos).Unit
-        local targetPos = npcPos + dir * 8
-        humanoidRootPart.CFrame = CFrame.new(targetPos.X, npcPos.Y, targetPos.Z)
-    end
-end
+-- Arrastar a interface frame.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true dragStart = input.Position startPos = frame.Position end end)
 
-local function teleportarNaRoda(char)
-    local humanoidRootPart = char:FindFirstChild("HumanoidRootPart")
-    local roda = workspace:FindFirstChild(nomeRodaDungeon)
-    if humanoidRootPart and roda then
-        humanoidRootPart.CFrame = roda.CFrame + Vector3.new(0, 3, 0)
-    end
-end
+frame.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then local delta = input.Position - dragStart frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
 
-CreateBtn("Auto Dungeon", 0, function(btn)
-	btn.Text = "Auto Dungeon: OFF"
-	btn.MouseButton1Click:Connect(function()
-		autoDungeonAtivo = not autoDungeonAtivo
-		btn.Text = autoDungeonAtivo and "Auto Dungeon: ON" or "Auto Dungeon: OFF"
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
-		if autoDungeonAtivo then
-			dungeonLoop = task.spawn(function()
-				while autoDungeonAtivo do
-					local char = player.Character or player.CharacterAdded:Wait()
-					local humanoid = char:FindFirstChild("Humanoid")
+-- Tecla fechar interface (F) UserInputService.InputBegan:Connect(function(input, gameProcessed) if input.KeyCode == Enum.KeyCode.F and not gameProcessed then guiVisible = not guiVisible frame.Visible = guiVisible openButton.Visible = not guiVisible end end)
 
-					-- Teleporta para a roda da dungeon
-					teleportarNaRoda(char)
-					wait(0.5)
+-- Função de ataque usando teclas local function usarSkills() for _, key in ipairs({"Z", "X", "C", "V"}) do VirtualInputManager:SendKeyEvent(true, key, false, game) task.wait(0.1) VirtualInputManager:SendKeyEvent(false, key, false, game) end end
 
-					-- Ativa o haki
-					ativarHaki()
+-- Ativa a Raça (quando vida abaixo de 50%) local function ativarRaca() local humanoid = char:FindFirstChildOfClass("Humanoid") if humanoid and humanoid.Health / humanoid.MaxHealth < 0.5 then VirtualInputManager:SendKeyEvent(true, "R", false, game) task.wait(0.1) VirtualInputManager:SendKeyEvent(false, "R", false, game) end end
 
-					for _, mob in pairs(workspace:GetDescendants()) do
-						if not autoDungeonAtivo then break end
-						if mob:FindFirstChild("Humanoid") and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 and mob.Name ~= player.Name then
-							
-							-- Aproxima o player do inimigo a 8 studs
-							aproximarNpc(char, mob)
-							wait(0.5)
+-- Alterna entre espada e fruta (se existirem) local function alternarEstilos() local mochila = player.Backpack for _, item in ipairs(mochila:GetChildren()) do if item:IsA("Tool") and (item.Name:lower():find("sword") or item.Name:lower():find("fruit")) then player.Character.Humanoid:EquipTool(item) usarSkills() task.wait(0.2) end end end
 
-							-- Troca para a espada
-							local sword = player.Backpack:FindFirstChild("Combat") or player.Backpack:FindFirstChildWhichIsA("Tool")
-							if sword then
-								sword.Parent = player.Character
-								wait(0.3)
-								vim:SendKeyEvent(true, "Z", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "X", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "C", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "V", false, game); wait(0.2)
-							end
+-- Loop principal RunService.RenderStepped:Connect(function() if not enabled then return end local inimigos = workspace:FindFirstChild("Enemies") or workspace:FindFirstChild("Enemy") if inimigos then for _, npc in ipairs(inimigos:GetChildren()) do if npc:FindFirstChild("Humanoid") and npc.Humanoid.Health > 0 and npc:FindFirstChild("HumanoidRootPart") then local alvo = npc.HumanoidRootPart local destino = alvo.Position + Vector3.new(0, distanceAbove, 0) local tween = TweenService:Create(humanoidRootPart, TweenInfo.new((humanoidRootPart.Position - destino).Magnitude / tweenSpeed, Enum.EasingStyle.Linear), {Position = destino}) tween:Play() tween.Completed:Wait() alternarEstilos() ativarRaca() end end end end)
 
-							wait(0.4)
+-- Botão ON/OFF local function atualizarBotao() toggle.Text = enabled and "[ ON ]" or "[ OFF ]" toggle.BackgroundColor3 = enabled and Color3.new(0, 0.6, 0) or Color3.new(0.2, 0.2, 0.2) end
 
-							-- Troca para a fruta
-							local fruit = player.Backpack:FindFirstChildWhichIsA("Tool")
-							if fruit and fruit.Name ~= (sword and sword.Name or "") then
-								fruit.Parent = player.Character
-								wait(0.3)
-								vim:SendKeyEvent(true, "Z", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "X", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "C", false, game); wait(0.2)
-								vim:SendKeyEvent(true, "V", false, game); wait(0.2)
-							end
+toggle.MouseButton1Click:Connect(function() enabled = not enabled atualizarBotao() end)
 
-							-- Ativa cliques básicos
-							mouse1click()
+atualizarBotao()
 
-							-- Se tiver com menos de 50% de vida, ativa tecla R (raça)
-							if humanoid.Health / humanoid.MaxHealth < 0.5 then
-								vim:SendKeyEvent(true, "R", false, game)
-								wait(0.2)
-								vim:SendKeyEvent(false, "R", false, game)
-							end
 
-							wait(1)
-						end
-					end
-					wait(0.5)
-				end
-			end)
-		else
-			if dungeonLoop then
-				task.cancel(dungeonLoop)
-			end
-		end
-	end)
-end)
